@@ -119,6 +119,10 @@
   let lastUrl = window.location.href;
   let isRunning = false;
 
+  // Track which property we've already clicked the floorplan tab for
+  // This prevents infinite loops when lightbox changes URL hash
+  let floorplanClickedForProperty = null;
+
   // Main execution
   init();
 
@@ -165,9 +169,21 @@
     const newUrl = window.location.href;
     if (newUrl === lastUrl) return;
 
+    // Ignore hash-only changes (lightbox opening/closing)
+    const oldBase = lastUrl.split('#')[0];
+    const newBase = newUrl.split('#')[0];
+    if (oldBase === newBase) {
+      log(' Hash-only change, ignoring:', newUrl);
+      lastUrl = newUrl;
+      return;
+    }
+
     log(' URL changed:', lastUrl, '->', newUrl);
     const oldUrl = lastUrl;
     lastUrl = newUrl;
+
+    // Reset floorplan click tracking for new property
+    floorplanClickedForProperty = null;
 
     // Track navigation
     Analytics.navigationDetected(oldUrl, newUrl);
@@ -345,29 +361,39 @@
 
     if (currentSite === SITES.CHESTERTONS || currentSite === SITES.SAVILLS) {
       // These sites require clicking a tab to load floorplan images
-      log(' Agent site detected, clicking floorplan tab first...');
-      injectLoadingState('Looking for floorplan...');
+      // BUT we must avoid re-clicking if we've already done it (prevents lightbox loop)
+      const currentPropertyId = getPropertyId();
 
-      const clicked = await clickFloorplanTab();
-      if (clicked) {
-        log(' Clicked floorplan tab, waiting for content...');
-        // Wait for lazy content to load
-        await new Promise(r => setTimeout(r, 2500));
-
-        // Now search for floorplan in DOM directly (more reliable than re-extracting)
+      if (floorplanClickedForProperty === currentPropertyId) {
+        log(' Already clicked floorplan tab for this property, searching DOM only...');
         floorplanUrl = findFloorplanInDOM();
-        log(' After tab click, floorplan URL:', floorplanUrl || 'NOT FOUND');
-
-        // Retry with longer wait if not found
-        if (!floorplanUrl) {
-          log(' Retrying floorplan search after delay...');
-          await new Promise(r => setTimeout(r, 2000));
-          floorplanUrl = findFloorplanInDOM();
-          log(' Retry result:', floorplanUrl || 'NOT FOUND');
-        }
       } else {
-        log(' No floorplan tab found, checking DOM anyway...');
-        floorplanUrl = findFloorplanInDOM();
+        log(' Agent site detected, clicking floorplan tab first...');
+        injectLoadingState('Looking for floorplan...');
+
+        const clicked = await clickFloorplanTab();
+        floorplanClickedForProperty = currentPropertyId; // Mark as clicked
+
+        if (clicked) {
+          log(' Clicked floorplan tab, waiting for content...');
+          // Wait for lazy content to load
+          await new Promise(r => setTimeout(r, 2500));
+
+          // Now search for floorplan in DOM directly (more reliable than re-extracting)
+          floorplanUrl = findFloorplanInDOM();
+          log(' After tab click, floorplan URL:', floorplanUrl || 'NOT FOUND');
+
+          // Retry with longer wait if not found
+          if (!floorplanUrl) {
+            log(' Retrying floorplan search after delay...');
+            await new Promise(r => setTimeout(r, 2000));
+            floorplanUrl = findFloorplanInDOM();
+            log(' Retry result:', floorplanUrl || 'NOT FOUND');
+          }
+        } else {
+          log(' No floorplan tab found, checking DOM anyway...');
+          floorplanUrl = findFloorplanInDOM();
+        }
       }
     } else {
       // Rightmove - floorplan is in the initial page data
