@@ -362,7 +362,7 @@
     if (currentSite === SITES.CHESTERTONS || currentSite === SITES.SAVILLS) {
       // STRATEGY: Extract floorplan URL from page HTML WITHOUT clicking tabs
       // This avoids triggering lightboxes and scroll-related issues
-      const currentPropertyId = getPropertyId();
+      const currentPropertyId = extractPropertyId();
 
       // Step 1: Try to find floorplan URL in full page HTML (including hidden tab panels)
       log(' Agent site detected, searching page HTML for floorplan...');
@@ -701,20 +701,58 @@
       data.address = { displayAddress: pageTitle };
     }
 
-    // Price - use regex on page text (like spider does) - CRITICAL FIX
-    // Look for £X,XXX pattern followed by pcm/pw/month/week
-    const priceMatch = pageText.match(/£([\d,]+)\s*(?:pcm|pw|per\s*(?:calendar\s*)?month|per\s*week|monthly|weekly)?/i);
-    if (priceMatch) {
-      const priceText = priceMatch[0];
-      data.prices = { primaryPrice: priceText };
-      log(' Chestertons price found:', priceText);
-    } else {
-      // Fallback: try any £X,XXX pattern
-      const anyPriceMatch = pageText.match(/£([\d,]+)/);
+    // Price - multi-strategy extraction
+    // Strategy 1: DOM-based selectors (most reliable for Chestertons)
+    const priceSelectors = [
+      '.price', '.property-price', '[class*="price"]',
+      '.rent-price', '.asking-price', '.listing-price',
+      '[data-price]', '.property-header__price', '.pdp-price',
+      'h2[class*="price"]', 'span[class*="price"]', 'div[class*="price"]'
+    ];
+
+    let priceFound = false;
+    for (const sel of priceSelectors) {
+      const priceEl = document.querySelector(sel);
+      if (priceEl) {
+        const priceText = priceEl.textContent.trim();
+        const priceExtracted = priceText.match(/£[\d,]+(?:\s*(?:pcm|pw|per\s*(?:calendar\s*)?month|per\s*week|monthly|weekly))?/i);
+        if (priceExtracted) {
+          data.prices = { primaryPrice: priceExtracted[0] };
+          log(' Chestertons price from DOM:', priceExtracted[0], 'selector:', sel);
+          priceFound = true;
+          break;
+        }
+      }
+    }
+
+    // Strategy 2: Regex on page text
+    if (!priceFound) {
+      const priceMatch = pageText.match(/£([\d,]+)\s*(?:pcm|pw|per\s*(?:calendar\s*)?month|per\s*week|monthly|weekly)?/i);
+      if (priceMatch) {
+        data.prices = { primaryPrice: priceMatch[0] };
+        log(' Chestertons price from pageText:', priceMatch[0]);
+        priceFound = true;
+      }
+    }
+
+    // Strategy 3: Search entire document body
+    if (!priceFound) {
+      const bodyText = document.body.innerText;
+      const bodyPriceMatch = bodyText.match(/£([\d,]+)\s*(?:pcm|pw|per\s*(?:calendar\s*)?month|per\s*week|monthly|weekly)?/i);
+      if (bodyPriceMatch) {
+        data.prices = { primaryPrice: bodyPriceMatch[0] };
+        log(' Chestertons price from body text:', bodyPriceMatch[0]);
+        priceFound = true;
+      }
+    }
+
+    // Strategy 4: Fallback - any £X,XXX pattern in body
+    if (!priceFound) {
+      const bodyText = document.body.innerText;
+      const anyPriceMatch = bodyText.match(/£([\d,]+)/);
       if (anyPriceMatch) {
-        // Check context for period indicator
-        const priceIndex = pageText.indexOf(anyPriceMatch[0]);
-        const context = pageText.substring(priceIndex, priceIndex + 50).toLowerCase();
+        const priceIndex = bodyText.indexOf(anyPriceMatch[0]);
+        const context = bodyText.substring(priceIndex, priceIndex + 50).toLowerCase();
         const period = context.includes('pw') || context.includes('week') ? 'pw' : 'pcm';
         data.prices = { primaryPrice: `${anyPriceMatch[0]} ${period}` };
         log(' Chestertons price fallback:', data.prices.primaryPrice);
