@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rent Fair Value",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "ML-powered fair rent estimates for London properties",
   "icons": {
     "16": "icons/icon16.png",

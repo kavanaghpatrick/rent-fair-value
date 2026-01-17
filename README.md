@@ -3,7 +3,7 @@
 **Know if you're overpaying for rent in London — instantly.**
 
 <p align="center">
-  <a href="https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.1.zip">
+  <a href="https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.2.zip">
     <img src="https://img.shields.io/badge/⬇_Download_Extension-22c55e?style=for-the-badge" alt="Download Extension">
   </a>
 </p>
@@ -36,7 +36,7 @@ Click "Compare with Similar Properties" to see a side-by-side view of comparable
 
 ## Install (2 minutes)
 
-1. **[Download the ZIP](https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.1.zip)**
+1. **[Download the ZIP](https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.2.zip)**
 2. Unzip the file
 3. Open Chrome → `chrome://extensions`
 4. Enable **Developer mode** (top right toggle)
