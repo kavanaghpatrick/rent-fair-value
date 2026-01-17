@@ -14,15 +14,19 @@
 
 A Chrome extension that shows you the **fair market rent** for any London property listing.
 
-When you visit a rental on Rightmove, Knight Frank, Chestertons, or Savills, a sidebar appears with:
+When you visit a rental on Rightmove, Knight Frank, Chestertons, or Savills, a sidebar appears showing whether the asking rent is fair.
 
-- **Fair Value Estimate** — What similar properties rent for, based on 10,000+ listings
-- **Premium/Discount %** — Whether the asking price is above or below market rate
-- **Compare Similar** — Side-by-side view of comparable properties nearby
+### Fair Value Sidebar
+
+The sidebar shows the ML-predicted fair rent and how the asking price compares to market rate.
 
 <p align="center">
   <img src="icons/store-screenshot-1.png" alt="Sidebar showing fair value estimate on a Rightmove listing" width="600">
 </p>
+
+### Compare Similar Properties
+
+Click "Compare with Similar Properties" to see a side-by-side view of comparable rentals in the same area — same bedrooms, similar size, and nearby location.
 
 <p align="center">
   <img src="icons/store-screenshot-2.png" alt="Comparison view of similar properties" width="600">
@@ -50,9 +54,18 @@ When you visit a rental on Rightmove, Knight Frank, Chestertons, or Savills, a s
 
 ## How It Works
 
-The extension uses an XGBoost model trained on 10,000+ London rental listings. It extracts property details (bedrooms, size, location) from the page and predicts fair market rent with 91% accuracy.
+1. **Extract** — When you visit a property listing, the extension reads the property details (bedrooms, bathrooms, size, postcode) from the page
+2. **Predict** — An XGBoost model trained on 10,000+ London rentals predicts fair market rent (91% accuracy, median error 4.5%)
+3. **Compare** — The model finds similar properties in the same area to validate the estimate
 
-All processing happens locally in your browser — no data is sent to any server.
+The model considers:
+- Location (postcode district)
+- Property size (sqft, extracted from floorplans via OCR if needed)
+- Bedrooms and bathrooms
+- Property type (flat, house, studio, penthouse)
+- Listing agent
+
+All processing runs locally in your browser — no data is sent to any server.
 
 ---
 
