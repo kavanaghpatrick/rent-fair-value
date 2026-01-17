@@ -1,0 +1,51 @@
+CHROME WEB STORE PRIVACY PRACTICES DISCLOSURE
+==============================================
+(Copy this into the Chrome Web Store Developer Dashboard)
+
+Single-Purpose Description:
+---------------------------
+Provides ML-powered fair rent estimates for London rental properties on Rightmove, Knight Frank, Chestertons, and Savills.
+
+Privacy Practices (1000 char limit):
+------------------------------------
+Data Handling:
+- This extension does NOT collect personally identifiable information
+- No login or account required
+- All rent predictions are calculated locally in your browser using an ML model
+
+Data Collected:
+- Anonymous usage analytics (page URLs, event types, property metadata like bedrooms/postcode)
+- A randomly-generated ID stored locally to distinguish installations
+
+Third-Party Services:
+- PostHog (analytics) - receives anonymous usage events
+- GitHub - hosts ML model files (no user data sent)
+
+Local Storage:
+- Stores only one anonymous identifier (deletable by uninstalling)
+
+User Rights:
+- Delete all data by uninstalling the extension
+- Request analytics deletion via privacy@rentfairvalue.com
+
+Full privacy policy: [Your hosted URL]
+
+
+Host Permission Justifications:
+-------------------------------
+rightmove.co.uk - Extract property details from rental listings
+knightfrank.co.uk - Extract property details from rental listings
+chestertons.co.uk - Extract property details from rental listings
+savills.com - Extract property details from rental listings
+us.i.posthog.com - Send anonymous usage analytics
+raw.githubusercontent.com - Download ML model and cache files
+dashboard-fawn-nu-59.vercel.app - Fetch similar property comparisons
+
+
+Data Use Certification:
+-----------------------
+[ ] I certify that this extension:
+    - Does not sell user data
+    - Does not use or transfer data for creditworthiness or lending
+    - Does not use or transfer data for advertising or marketing
+    - Does not use or transfer data for purposes unrelated to the extension's functionality
