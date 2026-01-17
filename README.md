@@ -10,33 +10,58 @@
 
 ---
 
-## Install in 2 Minutes
+## What It Does
 
-1. **[Download the ZIP](https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.0.zip)**
-2. Unzip the file
-3. Open Chrome → go to `chrome://extensions`
-4. Enable **Developer mode** (toggle in top right)
-5. Click **Load unpacked** → select the unzipped folder
-6. Visit any property on Rightmove, Knight Frank, Chestertons, or Savills
+A Chrome extension that shows you the **fair market rent** for any London property listing.
+
+When you visit a rental on Rightmove, Knight Frank, Chestertons, or Savills, a sidebar appears with:
+
+- **Fair Value Estimate** — What similar properties rent for, based on 10,000+ listings
+- **Premium/Discount %** — Whether the asking price is above or below market rate
+- **Compare Similar** — Side-by-side view of comparable properties nearby
+
+<p align="center">
+  <img src="icons/store-screenshot-1.png" alt="Sidebar showing fair value estimate on a Rightmove listing" width="600">
+</p>
+
+<p align="center">
+  <img src="icons/store-screenshot-2.png" alt="Comparison view of similar properties" width="600">
+</p>
 
 ---
 
-## What It Does
+## Install (2 minutes)
 
-When you browse rental listings, this extension shows you:
+1. **[Download the ZIP](https://github.com/kavanaghpatrick/rent-fair-value/releases/latest/download/rent-fair-value-v1.0.0.zip)**
+2. Unzip the file
+3. Open Chrome → `chrome://extensions`
+4. Enable **Developer mode** (top right toggle)
+5. Click **Load unpacked** → select the unzipped folder
+6. Visit any rental listing on a supported site
 
-- **Fair Market Value** — ML-predicted rent based on 10,000+ London listings
-- **Premium/Discount** — How much above or below market the asking price is
+### Supported Sites
 
-<p align="center">
-  <img src="icons/store-screenshot-1.png" alt="Extension showing fair value on a listing" width="600">
-</p>
+- [Rightmove](https://www.rightmove.co.uk)
+- [Knight Frank](https://www.knightfrank.co.uk)
+- [Chestertons](https://www.chestertons.co.uk)
+- [Savills](https://www.savills.com)
+
+---
+
+## How It Works
+
+The extension uses an XGBoost model trained on 10,000+ London rental listings. It extracts property details (bedrooms, size, location) from the page and predicts fair market rent with 91% accuracy.
+
+All processing happens locally in your browser — no data is sent to any server.
 
 ---
 
 ## Privacy
 
-All processing happens in your browser. No data is sent anywhere.
+- No data collection
+- No tracking
+- No external API calls
+- Open source — inspect the code yourself
 
 [Full Privacy Policy](PRIVACY_POLICY.md)
 
