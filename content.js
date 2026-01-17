@@ -360,41 +360,30 @@
     let floorplanUrl = null;
 
     if (currentSite === SITES.CHESTERTONS || currentSite === SITES.SAVILLS) {
-      // These sites require clicking a tab to load floorplan images
-      // BUT we must avoid re-clicking if we've already done it (prevents lightbox loop)
+      // STRATEGY: Extract floorplan URL from page HTML WITHOUT clicking tabs
+      // This avoids triggering lightboxes and scroll-related issues
       const currentPropertyId = getPropertyId();
 
-      if (floorplanClickedForProperty === currentPropertyId) {
-        log(' Already clicked floorplan tab for this property, searching DOM only...');
-        floorplanUrl = findFloorplanInDOM();
+      // Step 1: Try to find floorplan URL in full page HTML (including hidden tab panels)
+      log(' Agent site detected, searching page HTML for floorplan...');
+      floorplanUrl = extractFloorplanFromHTML();
+
+      if (floorplanUrl) {
+        log(' Found floorplan in page HTML:', floorplanUrl);
       } else {
-        log(' Agent site detected, clicking floorplan tab first...');
-        injectLoadingState('Looking for floorplan...');
+        // Step 2: Search DOM including hidden elements
+        log(' Searching DOM for floorplan images...');
+        floorplanUrl = findFloorplanInDOM();
 
-        const clicked = await clickFloorplanTab();
-        floorplanClickedForProperty = currentPropertyId; // Mark as clicked
-
-        if (clicked) {
-          log(' Clicked floorplan tab, waiting for content...');
-          // Wait for lazy content to load
-          await new Promise(r => setTimeout(r, 2500));
-
-          // Now search for floorplan in DOM directly (more reliable than re-extracting)
-          floorplanUrl = findFloorplanInDOM();
-          log(' After tab click, floorplan URL:', floorplanUrl || 'NOT FOUND');
-
-          // Retry with longer wait if not found
-          if (!floorplanUrl) {
-            log(' Retrying floorplan search after delay...');
-            await new Promise(r => setTimeout(r, 2000));
-            floorplanUrl = findFloorplanInDOM();
-            log(' Retry result:', floorplanUrl || 'NOT FOUND');
-          }
+        if (floorplanUrl) {
+          log(' Found floorplan in DOM:', floorplanUrl);
         } else {
-          log(' No floorplan tab found, checking DOM anyway...');
-          floorplanUrl = findFloorplanInDOM();
+          log(' No floorplan found without clicking tabs');
         }
       }
+
+      // Mark that we've processed this property (no need to click tabs)
+      floorplanClickedForProperty = currentPropertyId;
     } else {
       // Rightmove - floorplan is in the initial page data
       floorplanUrl = getFloorplanUrl(propertyData);
@@ -1049,11 +1038,43 @@
 
     // 4. Check site-specific let type indicators (NOT full page text - causes false positives)
     if (currentSite === SITES.CHESTERTONS) {
-      // Chestertons uses a .bg-primary badge with "Long Let" or "Short Let" text
-      const letBadge = document.querySelector('.bg-primary, [class*="let-type"], [class*="lettings-type"]');
-      if (letBadge) {
-        const badgeText = letBadge.textContent.toLowerCase();
-        if (badgeText.includes('short')) return 'short';
+      // Chestertons uses various badge/label elements for let type
+      const letTypeSelectors = [
+        '.bg-primary',
+        '[class*="let-type"]',
+        '[class*="lettings-type"]',
+        '[class*="let_type"]',
+        '[class*="badge"]',
+        '[class*="label"]',
+        '[class*="tag"]',
+        '.property-type',
+        '.listing-type',
+        // Also check the URL
+      ];
+
+      for (const selector of letTypeSelectors) {
+        const elements = document.querySelectorAll(selector);
+        for (const el of elements) {
+          const text = el.textContent.toLowerCase().trim();
+          if (text.includes('short let') || text.includes('short-let') ||
+              text === 'short' || text.includes('short term')) {
+            log(' Chestertons short let detected via badge:', text);
+            return 'short';
+          }
+        }
+      }
+
+      // Also check URL path for short let indicator
+      if (window.location.href.toLowerCase().includes('short')) {
+        log(' Chestertons short let detected via URL');
+        return 'short';
+      }
+
+      // Check page title/heading
+      const pageTitle = document.querySelector('h1, .property-title, [class*="title"]');
+      if (pageTitle && pageTitle.textContent.toLowerCase().includes('short let')) {
+        log(' Chestertons short let detected via title');
+        return 'short';
       }
     } else if (currentSite === SITES.KNIGHTFRANK || currentSite === SITES.SAVILLS) {
       // For other agent sites, check only listing description elements (not full page)
@@ -1078,6 +1099,61 @@
     }
 
     return 'long';
+  }
+
+  /**
+   * Extract floorplan URL directly from page HTML without clicking any tabs
+   * This searches the full HTML including hidden tab panels
+   */
+  function extractFloorplanFromHTML() {
+    const html = document.documentElement.innerHTML;
+
+    // Chestertons-specific patterns (homeflow-assets CDN)
+    const patterns = [
+      // Direct floorplan path (most specific)
+      /https:\/\/[^"'\s]+homeflow-assets[^"'\s]+\/files\/floorplan\/[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi,
+      // Alternative floorplan path
+      /https:\/\/[^"'\s]+\/files\/floorplan\/[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi,
+      // Savills CDN pattern
+      /https:\/\/[^"'\s]+savills[^"'\s]+floorplan[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi,
+      // Generic floorplan in URL (last resort)
+      /https:\/\/[^"'\s]+floorplan[^"'\s]+\.(jpg|jpeg|png|gif|webp)/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const matches = html.match(pattern);
+      if (matches && matches.length > 0) {
+        // Clean up the URL (remove trailing quotes, escapes)
+        let url = matches[0].replace(/["'\\]+$/, '').replace(/\\u002F/g, '/');
+        // Skip tiny thumbnails
+        if (url.includes('thumb') || url.includes('_t.') || url.includes('_small')) {
+          continue;
+        }
+        log(' extractFloorplanFromHTML found:', url);
+        return url;
+      }
+    }
+
+    // Also check for data-src attributes in hidden elements
+    const hiddenImgs = document.querySelectorAll(
+      '[style*="display: none"] img[data-src*="floorplan"], ' +
+      '[style*="display:none"] img[data-src*="floorplan"], ' +
+      '[hidden] img[data-src*="floorplan"], ' +
+      '[aria-hidden="true"] img[data-src*="floorplan"], ' +
+      '.hidden img[data-src*="floorplan"], ' +
+      '[role="tabpanel"][hidden] img, ' +
+      '[role="tabpanel"][aria-hidden="true"] img'
+    );
+
+    for (const img of hiddenImgs) {
+      const url = img.dataset?.src || img.getAttribute('data-src') || img.src;
+      if (url && (url.includes('floorplan') || url.includes('/files/'))) {
+        log(' extractFloorplanFromHTML found in hidden element:', url);
+        return url;
+      }
+    }
+
+    return null;
   }
 
   function findFloorplanInDOM() {
